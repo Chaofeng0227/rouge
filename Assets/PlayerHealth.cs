@@ -4,6 +4,7 @@ public class PlayerHealth : MonoBehaviour
 {
     public int maxHealth = 10;
     private int currentHealth;
+    private bool isDead;
 
     public int CurrentHealth => currentHealth;
     public int MaxHealth => maxHealth;
@@ -21,6 +22,11 @@ public class PlayerHealth : MonoBehaviour
 
     public void TakeDamage(int damage)
     {
+        if (isDead)
+        {
+            return;
+        }
+
         currentHealth -= damage;
 
         if (currentHealth < 0)
@@ -38,13 +44,14 @@ public class PlayerHealth : MonoBehaviour
 
     void Die()
     {
-        Debug.Log("玩家血量为 0，游戏结束");
+        if (isDead)
+        {
+            return;
+        }
 
-#if UNITY_EDITOR
-        UnityEditor.EditorApplication.isPlaying = false;
-#else
-        Application.Quit();
-#endif
+        isDead = true;
+        Debug.Log("玩家血量为 0，游戏结束");
+        GameOverUI.Show();
     }
 
     void EnsureHealthBar()
