@@ -1,20 +1,29 @@
-using UnityEngine;
+Ôªøusing UnityEngine;
 
 public class EnemyHealth : MonoBehaviour
 {
     public int maxHealth = 3;
     private int currentHealth;
 
-    void Start()
+    public int CurrentHealth => currentHealth;
+    public int MaxHealth => maxHealth;
+
+    void Awake()
     {
         currentHealth = maxHealth;
+        EnsureHealthBar();
     }
 
     public void TakeDamage(int damage)
     {
         currentHealth -= damage;
 
-        Debug.Log(gameObject.name + "  ‹µΩ…À∫¶: " + damage + "£¨ £”‡—™¡ø: " + currentHealth);
+        if (currentHealth < 0)
+        {
+            currentHealth = 0;
+        }
+
+        Debug.Log(gameObject.name + " ÂèóÂà∞‰º§ÂÆ≥: " + damage + "ÔºåÂâ©‰ΩôË°ÄÈáè: " + currentHealth);
 
         if (currentHealth <= 0)
         {
@@ -25,5 +34,13 @@ public class EnemyHealth : MonoBehaviour
     void Die()
     {
         Destroy(gameObject);
+    }
+
+    void EnsureHealthBar()
+    {
+        if (GetComponent<OverheadHealthBar>() == null)
+        {
+            gameObject.AddComponent<OverheadHealthBar>();
+        }
     }
 }

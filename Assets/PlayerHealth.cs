@@ -1,14 +1,22 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 
 public class PlayerHealth : MonoBehaviour
 {
     public int maxHealth = 10;
     private int currentHealth;
 
-    void Start()
+    public int CurrentHealth => currentHealth;
+    public int MaxHealth => maxHealth;
+
+    void Awake()
     {
         currentHealth = maxHealth;
-        Debug.Log("Íæ¼Ò³õÊ¼ÑªÁ¿: " + currentHealth);
+        EnsureHealthBar();
+    }
+
+    void Start()
+    {
+        Debug.Log("ç©å®¶åˆå§‹è¡€é‡: " + currentHealth);
     }
 
     public void TakeDamage(int damage)
@@ -20,7 +28,7 @@ public class PlayerHealth : MonoBehaviour
             currentHealth = 0;
         }
 
-        Debug.Log("Íæ¼ÒÊÜµ½ÉËº¦: " + damage + "£¬µ±Ç°ÑªÁ¿: " + currentHealth);
+        Debug.Log("ç©å®¶å—åˆ°ä¼¤å®³: " + damage + "ï¼Œå½“å‰è¡€é‡: " + currentHealth);
 
         if (currentHealth <= 0)
         {
@@ -30,12 +38,20 @@ public class PlayerHealth : MonoBehaviour
 
     void Die()
     {
-        Debug.Log("Íæ¼ÒÑªÁ¿Îª 0£¬ÓÎÏ·½áÊø");
+        Debug.Log("ç©å®¶è¡€é‡ä¸º 0ï¼Œæ¸¸æˆç»“æŸ");
 
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
 #else
         Application.Quit();
 #endif
+    }
+
+    void EnsureHealthBar()
+    {
+        if (GetComponent<OverheadHealthBar>() == null)
+        {
+            gameObject.AddComponent<OverheadHealthBar>();
+        }
     }
 }

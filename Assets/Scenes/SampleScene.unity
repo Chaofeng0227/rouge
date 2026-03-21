@@ -372,6 +372,7 @@ GameObject:
   - component: {fileID: 731194900}
   - component: {fileID: 731194901}
   - component: {fileID: 731194902}
+  - component: {fileID: 731194903}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -460,7 +461,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: 21300000, guid: abf21e11e3996664b972de33723be347, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 78d03ce1d36c540d5a183e4b042d3afb, type: 3}
   m_Color: {r: 0.9924528, g: 0.9924528, b: 0.9924528, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -481,7 +482,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.58042324, y: 0.53558904, z: 1}
+  m_LocalScale: {x: 1.15, y: 1.15, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1190374134}
@@ -530,7 +531,7 @@ BoxCollider2D:
     adaptiveTiling: 0
   m_AutoTiling: 0
   serializedVersion: 2
-  m_Size: {x: 3.01, y: 3.72}
+  m_Size: {x: 0.78, y: 0.92}
   m_EdgeRadius: 0
 --- !u!114 &731194901
 MonoBehaviour:
@@ -548,6 +549,7 @@ MonoBehaviour:
   firePoint: {fileID: 1190374134}
   bulletSpeed: 10
   fireRate: 0.2
+  firePointDistance: 0.45
 --- !u!114 &731194902
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -561,6 +563,26 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxHealth: 10
+--- !u!114 &731194903
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 731194895}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3a565b53c1e74845ae4ed6251a9cbd22, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  downSprite: {fileID: 21300000, guid: 78d03ce1d36c540d5a183e4b042d3afb, type: 3}
+  upSprite: {fileID: 21300000, guid: 22e2e266842ee4be99cc17a825471e49, type: 3}
+  sideSprite: {fileID: 21300000, guid: bdcdc3843a6a8425d81b0583faf6e314, type: 3}
+  downDiagonalSprite: {fileID: 21300000, guid: cb4963a6ba6b54620a996fd8cace9c00, type: 3}
+  upDiagonalSprite: {fileID: 21300000, guid: 5fc61cef57bfe4c9395f3c76753f4ac7, type: 3}
+  moveThreshold: 0.05
+  bounceSpeed: 12
+  bounceAmount: 0.05
 --- !u!1 &997383149
 GameObject:
   m_ObjectHideFlags: 0
@@ -635,8 +657,8 @@ Transform:
   m_GameObject: {fileID: 1190374133}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 1.59, y: -0.12, z: 0}
-  m_LocalScale: {x: 0.22329828, y: 0.24078912, z: 1}
+  m_LocalPosition: {x: 0.42, y: -0.03, z: 0}
+  m_LocalScale: {x: 0.16, y: 0.16, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 731194899}
@@ -648,7 +670,7 @@ SpriteRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1190374133}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 0
   m_ReceiveShadows: 0
   m_DynamicOccludee: 1
