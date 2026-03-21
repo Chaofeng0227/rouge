@@ -1,23 +1,12 @@
-<<<<<<< HEAD
-ï»¿using UnityEngine;
-
-public class PlayerShoot : MonoBehaviour
-{
-    public GameObject bulletPrefab;   // å­å¼¹é¢„åˆ¶ä½“
-    public Transform firePoint;       // å‘å°„ç‚¹
-    public float bulletSpeed = 10f;   // å­å¼¹é€Ÿåº¦
-    public float fireRate = 0.2f;     // å°„å‡»é—´éš”
-    public float firePointDistance = 0.45f;
-=======
 using UnityEngine;
 
 public class PlayerShoot : MonoBehaviour
 {
-    public GameObject bulletPrefab;   // ×Óµ¯Ô¤ÖÆÌå
-    public Transform firePoint;       // ·¢Éäµã
-    public float bulletSpeed = 10f;   // ×Óµ¯ËÙ¶È
-    public float fireRate = 0.2f;     // Éä»÷¼ä¸ô
->>>>>>> 1a1f7825e7bd6fed254ceb9dfb3453bdc7c54dda
+    public GameObject bulletPrefab;
+    public Transform firePoint;
+    public float bulletSpeed = 10f;
+    public float fireRate = 0.2f;
+    public float firePointDistance = 0.45f;
 
     private float fireTimer;
 
@@ -28,12 +17,8 @@ public class PlayerShoot : MonoBehaviour
         Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
         mouseWorldPos.z = 0f;
 
-<<<<<<< HEAD
         Vector2 shootDirection = (mouseWorldPos - transform.position).normalized;
         UpdateFirePoint(shootDirection);
-=======
-        Vector2 shootDirection = (mouseWorldPos - firePoint.position).normalized;
->>>>>>> 1a1f7825e7bd6fed254ceb9dfb3453bdc7c54dda
 
         if (Input.GetMouseButton(0) && fireTimer >= fireRate)
         {
@@ -44,12 +29,8 @@ public class PlayerShoot : MonoBehaviour
 
     void Shoot(Vector2 direction)
     {
-<<<<<<< HEAD
         Vector3 spawnPosition = firePoint != null ? firePoint.position : transform.position;
         GameObject bullet = Instantiate(bulletPrefab, spawnPosition, Quaternion.identity);
-=======
-        GameObject bullet = Instantiate(bulletPrefab, firePoint.position, Quaternion.identity);
->>>>>>> 1a1f7825e7bd6fed254ceb9dfb3453bdc7c54dda
 
         Rigidbody2D rb = bullet.GetComponent<Rigidbody2D>();
         if (rb != null)
@@ -60,7 +41,6 @@ public class PlayerShoot : MonoBehaviour
         float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
         bullet.transform.rotation = Quaternion.Euler(0, 0, angle);
     }
-<<<<<<< HEAD
 
     void UpdateFirePoint(Vector2 direction)
     {
@@ -75,6 +55,3 @@ public class PlayerShoot : MonoBehaviour
         firePoint.rotation = Quaternion.Euler(0f, 0f, angle);
     }
 }
-=======
-}
->>>>>>> 1a1f7825e7bd6fed254ceb9dfb3453bdc7c54dda
