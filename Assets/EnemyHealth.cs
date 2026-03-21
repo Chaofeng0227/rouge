@@ -16,6 +16,11 @@ public class EnemyHealth : MonoBehaviour
         EnsureHealthBar();
     }
 
+    public void SyncCurrentHealthToMax()
+    {
+        currentHealth = maxHealth;
+    }
+
     public void TakeDamage(int damage)
     {
         currentHealth -= damage;

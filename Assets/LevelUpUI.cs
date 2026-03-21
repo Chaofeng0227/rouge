@@ -12,8 +12,10 @@ public class LevelUpUI : MonoBehaviour
     private readonly Text[] optionTitles = new Text[3];
     private readonly Text[] optionDescriptions = new Text[3];
 
+    private GameObject hudRoot;
     private GameObject levelUpPanel;
     private Text hudText;
+    private Text stageText;
     private Action<PlayerUpgradeChoice> onChoiceSelected;
     private readonly List<PlayerUpgradeChoice> currentChoices = new List<PlayerUpgradeChoice>();
 
@@ -72,6 +74,17 @@ public class LevelUpUI : MonoBehaviour
         UpdateHud(level, PlayerProgression.Instance.CurrentExperience, PlayerProgression.Instance.RequiredExperience);
     }
 
+    void Update()
+    {
+        if (stageText == null)
+        {
+            return;
+        }
+
+        int stage = EnemyStageDirector.Instance != null ? EnemyStageDirector.Instance.CurrentStage : 0;
+        stageText.text = $"Stage {stage}";
+    }
+
     void Awake()
     {
         if (instance != null && instance != this)
@@ -82,6 +95,7 @@ public class LevelUpUI : MonoBehaviour
 
         instance = this;
         DontDestroyOnLoad(gameObject);
+        Debug.Log("LevelUpUI Awake");
         BuildUI();
     }
 
@@ -95,6 +109,8 @@ public class LevelUpUI : MonoBehaviour
 
     void BuildUI()
     {
+        Debug.Log("LevelUpUI BuildUI");
+
         Canvas canvas = gameObject.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 900;
@@ -111,7 +127,16 @@ public class LevelUpUI : MonoBehaviour
             return;
         }
 
-        GameObject hudObject = CreateUIObject("HUD", transform);
+        Debug.Log("LevelUpUI font loaded: " + font.name);
+
+        hudRoot = CreateUIObject("HUDRoot", transform);
+        RectTransform hudRootRect = hudRoot.GetComponent<RectTransform>();
+        hudRootRect.anchorMin = Vector2.zero;
+        hudRootRect.anchorMax = Vector2.one;
+        hudRootRect.offsetMin = Vector2.zero;
+        hudRootRect.offsetMax = Vector2.zero;
+
+        GameObject hudObject = CreateUIObject("HUD", hudRoot.transform);
         hudText = hudObject.AddComponent<Text>();
         hudText.font = font;
         hudText.fontSize = 24;
@@ -124,6 +149,34 @@ public class LevelUpUI : MonoBehaviour
         hudRect.pivot = new Vector2(0f, 1f);
         hudRect.sizeDelta = new Vector2(360f, 50f);
         hudRect.anchoredPosition = new Vector2(20f, -20f);
+
+        GameObject stagePanelObject = CreateUIObject("StagePanel", hudRoot.transform);
+        Image stagePanelImage = stagePanelObject.AddComponent<Image>();
+        stagePanelImage.color = new Color(0f, 0f, 0f, 0.72f);
+
+        RectTransform stagePanelRect = stagePanelObject.GetComponent<RectTransform>();
+        stagePanelRect.anchorMin = new Vector2(1f, 1f);
+        stagePanelRect.anchorMax = new Vector2(1f, 1f);
+        stagePanelRect.pivot = new Vector2(1f, 1f);
+        stagePanelRect.sizeDelta = new Vector2(220f, 52f);
+        stagePanelRect.anchoredPosition = new Vector2(-16f, -16f);
+
+        GameObject stageTextObject = CreateUIObject("StageText", stagePanelObject.transform);
+        stageText = stageTextObject.AddComponent<Text>();
+        stageText.font = font;
+        stageText.text = "Stage 0";
+        stageText.fontSize = 24;
+        stageText.fontStyle = FontStyle.Bold;
+        stageText.alignment = TextAnchor.MiddleRight;
+        stageText.color = Color.white;
+        stageText.horizontalOverflow = HorizontalWrapMode.Overflow;
+        stageText.verticalOverflow = VerticalWrapMode.Overflow;
+
+        RectTransform stageTextRect = stageTextObject.GetComponent<RectTransform>();
+        stageTextRect.anchorMin = Vector2.zero;
+        stageTextRect.anchorMax = Vector2.one;
+        stageTextRect.offsetMin = new Vector2(14f, 0f);
+        stageTextRect.offsetMax = new Vector2(-14f, 0f);
 
         levelUpPanel = CreateUIObject("LevelUpPanel", transform);
         RectTransform panelRect = levelUpPanel.GetComponent<RectTransform>();

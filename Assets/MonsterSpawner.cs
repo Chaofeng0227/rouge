@@ -31,6 +31,11 @@ public class MonsterSpawner : MonoBehaviour
         Vector2 randomOffset = Random.insideUnitCircle * spawnRadius;
         Vector3 spawnPos = transform.position + new Vector3(randomOffset.x, randomOffset.y, 0f);
 
-        Instantiate(enemyPrefab, spawnPos, Quaternion.identity);
+        GameObject enemy = Instantiate(enemyPrefab, spawnPos, Quaternion.identity);
+
+        if (EnemyStageDirector.Instance != null)
+        {
+            EnemyStageDirector.Instance.ApplyStageToEnemy(enemy);
+        }
     }
 }
