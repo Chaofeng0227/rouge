@@ -3,6 +3,8 @@ using UnityEngine;
 public class EnemyHealth : MonoBehaviour
 {
     public int maxHealth = 3;
+    public int experienceReward = 1;
+
     private int currentHealth;
 
     public int CurrentHealth => currentHealth;
@@ -23,7 +25,7 @@ public class EnemyHealth : MonoBehaviour
             currentHealth = 0;
         }
 
-        Debug.Log(gameObject.name + " 受到伤害: " + damage + "，剩余血量: " + currentHealth);
+        Debug.Log(gameObject.name + " took damage: " + damage + ", HP: " + currentHealth);
 
         if (currentHealth <= 0)
         {
@@ -33,6 +35,8 @@ public class EnemyHealth : MonoBehaviour
 
     void Die()
     {
+        ExperienceOrb.Spawn(transform.position, experienceReward);
+
         Destroy(gameObject);
     }
 

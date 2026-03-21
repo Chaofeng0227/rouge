@@ -8,16 +8,17 @@ public class PlayerHealth : MonoBehaviour
 
     public int CurrentHealth => currentHealth;
     public int MaxHealth => maxHealth;
+    public bool IsDead => isDead;
 
     void Awake()
     {
         currentHealth = maxHealth;
-        EnsureHealthBar();
+        EnsureSupportComponents();
     }
 
     void Start()
     {
-        Debug.Log("玩家初始血量: " + currentHealth);
+        Debug.Log("Player HP: " + currentHealth);
     }
 
     public void TakeDamage(int damage)
@@ -34,12 +35,33 @@ public class PlayerHealth : MonoBehaviour
             currentHealth = 0;
         }
 
-        Debug.Log("玩家受到伤害: " + damage + "，当前血量: " + currentHealth);
+        Debug.Log("Player took damage: " + damage + ", HP: " + currentHealth);
 
         if (currentHealth <= 0)
         {
             Die();
         }
+    }
+
+    public void Heal(int amount)
+    {
+        if (isDead || amount <= 0)
+        {
+            return;
+        }
+
+        currentHealth = Mathf.Min(currentHealth + amount, maxHealth);
+    }
+
+    public void IncreaseMaxHealth(int amount, int healAmount)
+    {
+        if (amount <= 0)
+        {
+            return;
+        }
+
+        maxHealth += amount;
+        currentHealth = Mathf.Min(currentHealth + healAmount, maxHealth);
     }
 
     void Die()
@@ -50,15 +72,20 @@ public class PlayerHealth : MonoBehaviour
         }
 
         isDead = true;
-        Debug.Log("玩家血量为 0，游戏结束");
+        Debug.Log("Player died.");
         GameOverUI.Show();
     }
 
-    void EnsureHealthBar()
+    void EnsureSupportComponents()
     {
         if (GetComponent<OverheadHealthBar>() == null)
         {
             gameObject.AddComponent<OverheadHealthBar>();
+        }
+
+        if (GetComponent<PlayerProgression>() == null)
+        {
+            gameObject.AddComponent<PlayerProgression>();
         }
     }
 }

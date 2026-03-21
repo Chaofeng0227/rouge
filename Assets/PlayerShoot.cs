@@ -7,6 +7,7 @@ public class PlayerShoot : MonoBehaviour
     public float bulletSpeed = 10f;
     public float fireRate = 0.2f;
     public float firePointDistance = 0.45f;
+    public int bulletDamage = 1;
 
     private float fireTimer;
 
@@ -36,6 +37,12 @@ public class PlayerShoot : MonoBehaviour
         if (rb != null)
         {
             rb.velocity = direction * bulletSpeed;
+        }
+
+        Bullet bulletComponent = bullet.GetComponent<Bullet>();
+        if (bulletComponent != null)
+        {
+            bulletComponent.damage = bulletDamage;
         }
 
         float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
