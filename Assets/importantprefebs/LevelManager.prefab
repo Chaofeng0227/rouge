@@ -1,0 +1,146 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &7033409171227487208
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6640163583838212668}
+  - component: {fileID: 976714634674054395}
+  m_Layer: 0
+  m_Name: LevelManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6640163583838212668
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7033409171227487208}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &976714634674054395
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7033409171227487208}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2ed37ff29fc09c24cb1cb2220e1f6a60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  roomPool:
+  - roomName: 
+    prefab: {fileID: 2056994338170135465, guid: dae122042f0b60d4788b3ed3cc922232, type: 3}
+    hasTop: 1
+    hasBottom: 1
+    hasLeft: 1
+    hasRight: 1
+  - roomName: 
+    prefab: {fileID: 6233270790506517961, guid: e56235d0516e2c34d94be82367c4e74e, type: 3}
+    hasTop: 0
+    hasBottom: 0
+    hasLeft: 1
+    hasRight: 1
+  - roomName: 
+    prefab: {fileID: 8776877251914141989, guid: b02cd9666e6a0654697de5abd045a2c4, type: 3}
+    hasTop: 1
+    hasBottom: 1
+    hasLeft: 0
+    hasRight: 0
+  - roomName: 
+    prefab: {fileID: 8107301639614834930, guid: e274ec5297956904eaf8caa318b67d2e, type: 3}
+    hasTop: 1
+    hasBottom: 0
+    hasLeft: 0
+    hasRight: 1
+  - roomName: 
+    prefab: {fileID: 5314286703738346119, guid: 2e4cb59b202392d408dbf8f6bc499f8e, type: 3}
+    hasTop: 1
+    hasBottom: 0
+    hasLeft: 1
+    hasRight: 0
+  - roomName: 
+    prefab: {fileID: 949132158124718834, guid: 06ff3589e9185fc47a93fea8b15ad7b5, type: 3}
+    hasTop: 0
+    hasBottom: 1
+    hasLeft: 1
+    hasRight: 0
+  - roomName: 
+    prefab: {fileID: 6168364285978401977, guid: 08627bd72dff9ed4dbe547f18dad170e, type: 3}
+    hasTop: 0
+    hasBottom: 1
+    hasLeft: 0
+    hasRight: 1
+  - roomName: 
+    prefab: {fileID: 5725495171500242867, guid: 7b67217bf9ac34d4bb206667b6bb7759, type: 3}
+    hasTop: 1
+    hasBottom: 1
+    hasLeft: 0
+    hasRight: 1
+  - roomName: 
+    prefab: {fileID: 6630264446767916008, guid: 1f05dd2ce40763c40bcdbef0b07f50ae, type: 3}
+    hasTop: 0
+    hasBottom: 1
+    hasLeft: 1
+    hasRight: 1
+  - roomName: 
+    prefab: {fileID: 3821033676594587158, guid: c385d31dab58ee84ebd01600fd601dac, type: 3}
+    hasTop: 1
+    hasBottom: 1
+    hasLeft: 1
+    hasRight: 0
+  - roomName: 
+    prefab: {fileID: 1391960661746954728, guid: a2bc3b8709154f8489a7dfd0e5e2c1d2, type: 3}
+    hasTop: 1
+    hasBottom: 0
+    hasLeft: 1
+    hasRight: 1
+  - roomName: 
+    prefab: {fileID: 3524074609097613669, guid: 229abe715a46c2d429e43aa88b63d404, type: 3}
+    hasTop: 0
+    hasBottom: 1
+    hasLeft: 0
+    hasRight: 0
+  - roomName: 
+    prefab: {fileID: 210303725880442979, guid: a05578645a435714d9f99b6a75e6025f, type: 3}
+    hasTop: 0
+    hasBottom: 0
+    hasLeft: 0
+    hasRight: 1
+  - roomName: 
+    prefab: {fileID: 5833815039368064093, guid: c56677c1eadeb06448ae0c74c8176b61, type: 3}
+    hasTop: 1
+    hasBottom: 0
+    hasLeft: 0
+    hasRight: 0
+  - roomName: 
+    prefab: {fileID: 6650571035251338466, guid: 904282ce70937404eadcdf075353a31b, type: 3}
+    hasTop: 0
+    hasBottom: 0
+    hasLeft: 1
+    hasRight: 0
+  maxRooms: 45
+  mainPathLength: 8
+  stepSize: 18
+  branchChance: 0.45
+  minBranchLength: 1
+  maxBranchLength: 3
+  maxConnectionsPerRoom: 3
+  corridorHorizontal: {fileID: 969323198060519311, guid: 8aac71acded339a4fb773597dbc29945, type: 3}
+  corridorVertical: {fileID: 7472678672134673733, guid: 6fd59c8b5ceaaac4ba947ff0976e16a0, type: 3}

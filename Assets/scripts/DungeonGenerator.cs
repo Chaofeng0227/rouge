@@ -1,0 +1,637 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+public class DungeonGenerator : MonoBehaviour
+{
+    [System.Serializable]
+    public class RoomPrefab
+    {
+        public string roomName;
+        public GameObject prefab;
+        public bool hasTop;
+        public bool hasBottom;
+        public bool hasLeft;
+        public bool hasRight;
+    }
+
+    [Header("房间配置")]
+    public List<RoomPrefab> roomPool;
+
+    [Header("地图配置")]
+    public int maxRooms = 20;
+    public int mainPathLength = 8;
+    public float stepSize = 18f;
+
+    [Header("分支配置")]
+    [Range(0f, 1f)]
+    public float branchChance = 0.45f;   // 每个候选房间长支线的概率
+    public int minBranchLength = 1;
+    public int maxBranchLength = 3;
+
+    [Header("连接数限制")]
+    [Range(2, 4)]
+    public int maxConnectionsPerRoom = 3;
+    // 2 = 不允许三通/四通
+    // 3 = 允许三通
+    // 4 = 允许四通
+
+    [Header("走廊预制体")]
+    public GameObject corridorHorizontal;
+    public GameObject corridorVertical;
+
+    [Header("玩家配置")]
+    public GameObject playerPrefab;      // 玩家预制体
+    public bool spawnNewPlayer = true;   // true: 生成新的玩家；false: 移动场景中已有玩家
+    private GameObject currentPlayer;    // 当前玩家实例
+
+    [Header("怪物刷新点配置")]
+    public GameObject monsterSpawnerPrefab;   // 带 MonsterSpawner 组件的预制体
+    public int maxSpawners = 5;               // 最多几个刷怪点
+    public float minSpawnerDistance = 30f;    // 起点到刷怪房间的最小距离(世界单位，可根据 stepSize 调整)
+    public Vector3 spawnerOffsetInRoom = Vector3.zero; // 刷新点在房间内部的偏移
+
+    // 图结构：房间坐标 -> 与之相连的房间坐标集合
+    private Dictionary<Vector2Int, HashSet<Vector2Int>> graph =
+        new Dictionary<Vector2Int, HashSet<Vector2Int>>();
+
+    // 已生成的房间：房间坐标 -> 使用的房间预制体数据
+    private Dictionary<Vector2Int, RoomPrefab> spawnedRooms =
+        new Dictionary<Vector2Int, RoomPrefab>();
+
+    // 对外提供只读访问（用于寻路）
+    public Dictionary<Vector2Int, HashSet<Vector2Int>> Graph => graph;
+    public float StepSize => stepSize;
+
+    void Start()
+    {
+        if (roomPool == null || roomPool.Count == 0)
+        {
+            Debug.LogError("请在 Inspector 中添加房间预制体！");
+            return;
+        }
+
+        if (mainPathLength > maxRooms)
+        {
+            mainPathLength = maxRooms;
+        }
+
+        GenerateDungeon();
+    }
+
+    // =========================
+    // 总生成流程
+    // =========================
+    public void GenerateDungeon()
+    {
+        // 1. 清空旧数据
+        graph.Clear();
+        spawnedRooms.Clear();
+
+        // 2. 生成主路
+        BuildMainPath();
+
+        // 3. 生成支线
+        BuildBranches();
+
+        // 4. 根据图结构实例化房间和走廊
+        SpawnDungeonFromGraph();
+
+        // 5. 生成 / 移动玩家，并设置相机跟随
+        PlacePlayerAtStart();
+
+        // 6. 在边缘房间生成怪物刷新点
+        PlaceMonsterSpawners();
+
+        Debug.Log("地牢生成完成，房间数：" + graph.Count);
+    }
+
+    // =========================
+    // 第一步：生成主路
+    // =========================
+    void BuildMainPath()
+    {
+        List<Vector2Int> mainPath = GenerateLinearPath(mainPathLength, 50);
+
+        if (mainPath.Count == 0)
+        {
+            Debug.LogWarning("主路生成失败");
+            return;
+        }
+
+        for (int i = 0; i < mainPath.Count; i++)
+        {
+            EnsureNode(mainPath[i]);
+
+            if (i > 0)
+            {
+                AddConnection(mainPath[i - 1], mainPath[i]);
+            }
+        }
+    }
+
+    List<Vector2Int> GenerateLinearPath(int targetLength, int retryCount)
+    {
+        List<Vector2Int> bestPath = new List<Vector2Int>();
+        bestPath.Add(Vector2Int.zero);
+
+        for (int attempt = 0; attempt < retryCount; attempt++)
+        {
+            List<Vector2Int> path = new List<Vector2Int>();
+            HashSet<Vector2Int> used = new HashSet<Vector2Int>();
+
+            path.Add(Vector2Int.zero);
+            used.Add(Vector2Int.zero);
+
+            while (path.Count < targetLength)
+            {
+                Vector2Int current = path[path.Count - 1];
+                List<Vector2Int> available = GetEmptyNeighbors(current, used);
+
+                if (available.Count == 0)
+                    break;
+
+                Vector2Int next = available[Random.Range(0, available.Count)];
+                path.Add(next);
+                used.Add(next);
+            }
+
+            if (path.Count > bestPath.Count)
+            {
+                bestPath = new List<Vector2Int>(path);
+            }
+
+            if (bestPath.Count >= targetLength)
+                break;
+        }
+
+        return bestPath;
+    }
+
+    // =========================
+    // 第二步：生成支线
+    // =========================
+    void BuildBranches()
+    {
+        // 多轮扫描，让支线也可以继续长出支线
+        for (int pass = 0; pass < 6; pass++)
+        {
+            if (graph.Count >= maxRooms)
+                break;
+
+            List<Vector2Int> candidates = new List<Vector2Int>(graph.Keys);
+            ShuffleList(candidates);
+
+            bool addedAny = false;
+
+            foreach (Vector2Int origin in candidates)
+            {
+                if (graph.Count >= maxRooms)
+                    break;
+
+                if (!CanBranchFrom(origin))
+                    continue;
+
+                if (Random.value > branchChance)
+                    continue;
+
+                int targetLength = Random.Range(minBranchLength, maxBranchLength + 1);
+                int added = GrowBranchFrom(origin, targetLength);
+
+                if (added > 0)
+                    addedAny = true;
+            }
+
+            if (!addedAny)
+                break;
+        }
+    }
+
+    bool CanBranchFrom(Vector2Int pos)
+    {
+        if (!graph.ContainsKey(pos))
+            return false;
+
+        if (graph[pos].Count >= maxConnectionsPerRoom)
+            return false;
+
+        List<Vector2Int> available =
+            GetEmptyNeighbors(pos, new HashSet<Vector2Int>(graph.Keys));
+        return available.Count > 0;
+    }
+
+    int GrowBranchFrom(Vector2Int origin, int targetLength)
+    {
+        if (graph.Count >= maxRooms)
+            return 0;
+
+        HashSet<Vector2Int> blocked = new HashSet<Vector2Int>(graph.Keys);
+        List<Vector2Int> localPath = new List<Vector2Int>();
+
+        Vector2Int current = origin;
+
+        for (int i = 0; i < targetLength; i++)
+        {
+            if (graph.Count + localPath.Count >= maxRooms)
+                break;
+
+            List<Vector2Int> available = GetEmptyNeighbors(current, blocked);
+
+            if (available.Count == 0)
+                break;
+
+            Vector2Int next = available[Random.Range(0, available.Count)];
+
+            localPath.Add(next);
+            blocked.Add(next);
+            current = next;
+        }
+
+        if (localPath.Count == 0)
+            return 0;
+
+        AddConnection(origin, localPath[0]);
+
+        for (int i = 1; i < localPath.Count; i++)
+        {
+            AddConnection(localPath[i - 1], localPath[i]);
+        }
+
+        return localPath.Count;
+    }
+
+    // =========================
+    // 第三步：按连接图生成房间和走廊
+    // =========================
+    void SpawnDungeonFromGraph()
+    {
+        // 先放房间
+        foreach (KeyValuePair<Vector2Int, HashSet<Vector2Int>> kv in graph)
+        {
+            Vector2Int pos = kv.Key;
+            RoomPrefab room = GetExactRoomForPosition(pos);
+
+            if (room == null)
+            {
+                room = GetBackupRoomForPosition(pos);
+
+                if (room != null)
+                {
+                    Debug.LogWarning("位置 " + pos + " 没有完全匹配房型，退回使用：" + room.roomName);
+                }
+                else
+                {
+                    Debug.LogError("位置 " + pos + " 完全找不到可用房间");
+                    continue;
+                }
+            }
+
+            PlaceRoom(pos, room);
+        }
+
+        // 再放走廊（每条边只生成一次）
+        foreach (KeyValuePair<Vector2Int, HashSet<Vector2Int>> kv in graph)
+        {
+            Vector2Int a = kv.Key;
+
+            foreach (Vector2Int b in kv.Value)
+            {
+                if (ShouldSpawnEdgeOnce(a, b))
+                {
+                    SpawnCorridorBetween(a, b);
+                }
+            }
+        }
+    }
+
+    RoomPrefab GetExactRoomForPosition(Vector2Int pos)
+    {
+        bool top = IsConnected(pos, pos + Vector2Int.up);
+        bool bottom = IsConnected(pos, pos + Vector2Int.down);
+        bool left = IsConnected(pos, pos + Vector2Int.left);
+        bool right = IsConnected(pos, pos + Vector2Int.right);
+
+        List<RoomPrefab> matches = roomPool.FindAll(r =>
+            r.hasTop == top &&
+            r.hasBottom == bottom &&
+            r.hasLeft == left &&
+            r.hasRight == right
+        );
+
+        if (matches.Count == 0)
+            return null;
+
+        return matches[Random.Range(0, matches.Count)];
+    }
+
+    RoomPrefab GetBackupRoomForPosition(Vector2Int pos)
+    {
+        bool top = IsConnected(pos, pos + Vector2Int.up);
+        bool bottom = IsConnected(pos, pos + Vector2Int.down);
+        bool left = IsConnected(pos, pos + Vector2Int.left);
+        bool right = IsConnected(pos, pos + Vector2Int.right);
+
+        List<RoomPrefab> candidates = roomPool.FindAll(r =>
+            (!top || r.hasTop) &&
+            (!bottom || r.hasBottom) &&
+            (!left || r.hasLeft) &&
+            (!right || r.hasRight)
+        );
+
+        if (candidates.Count == 0)
+            return null;
+
+        int requiredCount = CountDoors(top, bottom, left, right);
+        int bestExtra = int.MaxValue;
+        List<RoomPrefab> best = new List<RoomPrefab>();
+
+        foreach (RoomPrefab r in candidates)
+        {
+            int roomCount = CountDoors(r.hasTop, r.hasBottom, r.hasLeft, r.hasRight);
+            int extra = roomCount - requiredCount;
+
+            if (extra < bestExtra)
+            {
+                bestExtra = extra;
+                best.Clear();
+                best.Add(r);
+            }
+            else if (extra == bestExtra)
+            {
+                best.Add(r);
+            }
+        }
+
+        return best[Random.Range(0, best.Count)];
+    }
+
+    // =========================
+    // 图结构工具
+    // =========================
+    void EnsureNode(Vector2Int pos)
+    {
+        if (!graph.ContainsKey(pos))
+        {
+            graph.Add(pos, new HashSet<Vector2Int>());
+        }
+    }
+
+    void AddConnection(Vector2Int a, Vector2Int b)
+    {
+        EnsureNode(a);
+        EnsureNode(b);
+
+        if (graph[a].Count >= maxConnectionsPerRoom && !graph[a].Contains(b))
+            return;
+
+        if (graph[b].Count >= maxConnectionsPerRoom && !graph[b].Contains(a))
+            return;
+
+        graph[a].Add(b);
+        graph[b].Add(a);
+    }
+
+    bool IsConnected(Vector2Int a, Vector2Int b)
+    {
+        return graph.ContainsKey(a) && graph[a].Contains(b);
+    }
+
+    bool ShouldSpawnEdgeOnce(Vector2Int a, Vector2Int b)
+    {
+        if (a.x != b.x)
+            return a.x < b.x;
+
+        return a.y < b.y;
+    }
+
+    List<Vector2Int> GetEmptyNeighbors(Vector2Int pos, HashSet<Vector2Int> blocked)
+    {
+        List<Vector2Int> result = new List<Vector2Int>();
+
+        Vector2Int[] dirs =
+        {
+            Vector2Int.up,
+            Vector2Int.down,
+            Vector2Int.left,
+            Vector2Int.right
+        };
+
+        for (int i = 0; i < dirs.Length; i++)
+        {
+            Vector2Int next = pos + dirs[i];
+            if (!blocked.Contains(next))
+            {
+                result.Add(next);
+            }
+        }
+
+        return result;
+    }
+
+    int CountDoors(bool top, bool bottom, bool left, bool right)
+    {
+        int count = 0;
+        if (top) count++;
+        if (bottom) count++;
+        if (left) count++;
+        if (right) count++;
+        return count;
+    }
+
+    void ShuffleList<T>(List<T> list)
+    {
+        for (int i = 0; i < list.Count; i++)
+        {
+            int j = Random.Range(i, list.Count);
+            T temp = list[i];
+            list[i] = list[j];
+            list[j] = temp;
+        }
+    }
+
+    // =========================
+    // 生成实体：房间 & 走廊
+    // =========================
+    void PlaceRoom(Vector2Int pos, RoomPrefab room)
+    {
+        if (room == null)
+        {
+            Debug.LogError("PlaceRoom 失败，room 为 null，位置：" + pos);
+            return;
+        }
+
+        if (room.prefab == null)
+        {
+            Debug.LogError("PlaceRoom 失败，prefab 为 null，房间：" + room.roomName);
+            return;
+        }
+
+        if (spawnedRooms.ContainsKey(pos))
+        {
+            Debug.LogWarning("位置已存在房间：" + pos);
+            return;
+        }
+
+        Vector3 spawnPos = new Vector3(pos.x * stepSize, pos.y * stepSize, 0f);
+        Instantiate(room.prefab, spawnPos, Quaternion.identity, transform);
+        spawnedRooms.Add(pos, room);
+    }
+
+    void SpawnCorridorBetween(Vector2Int a, Vector2Int b)
+    {
+        Vector3 midPoint = new Vector3(
+            (a.x + b.x) * 0.5f * stepSize,
+            (a.y + b.y) * 0.5f * stepSize,
+            0f
+        );
+
+        if (a.y == b.y)
+        {
+            if (corridorHorizontal != null)
+                Instantiate(corridorHorizontal, midPoint, Quaternion.identity, transform);
+            else
+                Debug.LogWarning("corridorHorizontal 未设置");
+        }
+        else if (a.x == b.x)
+        {
+            if (corridorVertical != null)
+                Instantiate(corridorVertical, midPoint, Quaternion.identity, transform);
+            else
+                Debug.LogWarning("corridorVertical 未设置");
+        }
+        else
+        {
+            Debug.LogWarning("走廊生成失败：两个房间不是正交相邻");
+        }
+    }
+
+    // =========================
+    // 玩家出生 + 相机跟随
+    // =========================
+    void PlacePlayerAtStart()
+    {
+        // 起点：主路从 Vector2Int.zero 开始
+        Vector2Int startGridPos = Vector2Int.zero;
+
+        Vector3 startWorldPos = new Vector3(
+            startGridPos.x * stepSize,
+            startGridPos.y * stepSize,
+            0f
+        );
+
+        if (spawnNewPlayer)
+        {
+            if (currentPlayer != null)
+            {
+                Destroy(currentPlayer);
+            }
+
+            if (playerPrefab != null)
+            {
+                currentPlayer = Instantiate(playerPrefab, startWorldPos, Quaternion.identity);
+            }
+            else
+            {
+                Debug.LogError("DungeonGenerator：未设置 playerPrefab，无法生成玩家！");
+                return;
+            }
+        }
+        else
+        {
+            GameObject existingPlayer = GameObject.FindGameObjectWithTag("Player");
+            if (existingPlayer != null)
+            {
+                existingPlayer.transform.position = startWorldPos;
+                currentPlayer = existingPlayer;
+            }
+            else
+            {
+                Debug.LogWarning("DungeonGenerator：spawnNewPlayer=false 但场景中找不到标签为 'Player' 的玩家对象。");
+                return;
+            }
+        }
+
+        // 设置相机跟随当前玩家
+        if (Camera.main != null)
+        {
+            CameraFollow camFollow = Camera.main.GetComponent<CameraFollow>();
+            if (camFollow != null)
+            {
+                camFollow.target = currentPlayer.transform;
+            }
+            else
+            {
+                Debug.LogWarning("主摄像机上没有 CameraFollow 组件。");
+            }
+        }
+        else
+        {
+            Debug.LogWarning("场景中找不到带 MainCamera 标签的摄像机。");
+        }
+    }
+
+    // =========================
+    // 怪物刷新点生成
+    // =========================
+    void PlaceMonsterSpawners()
+    {
+        if (monsterSpawnerPrefab == null)
+        {
+            Debug.LogWarning("DungeonGenerator：monsterSpawnerPrefab 未设置，跳过刷怪点生成。");
+            return;
+        }
+
+        // 起点网格位置
+        Vector2Int startGridPos = Vector2Int.zero;
+        Vector3 startWorldPos = new Vector3(
+            startGridPos.x * stepSize,
+            startGridPos.y * stepSize,
+            0f
+        );
+
+        // 找出候选的“边缘房间”：连接数为 1 且距离起点足够远
+        List<Vector2Int> edgeRooms = new List<Vector2Int>();
+        foreach (var kv in graph)
+        {
+            Vector2Int pos = kv.Key;
+            int connectionCount = kv.Value.Count;
+
+            // 只考虑连通数为 1 的叶子房间（若想更宽松可改为 <=2）
+            if (connectionCount == 1)
+            {
+                Vector3 worldPos = new Vector3(pos.x * stepSize, pos.y * stepSize, 0f);
+                float dist = Vector3.Distance(worldPos, startWorldPos);
+
+                // 距离起点太近的不要
+                if (dist >= minSpawnerDistance)
+                {
+                    edgeRooms.Add(pos);
+                }
+            }
+        }
+
+        if (edgeRooms.Count == 0)
+        {
+            Debug.LogWarning("DungeonGenerator：没有找到合适的边缘房间生成怪物刷新点。");
+            return;
+        }
+
+        // 打乱顺序，避免每次都是同几个
+        ShuffleList(edgeRooms);
+
+        int placed = 0;
+        foreach (Vector2Int roomPos in edgeRooms)
+        {
+            if (placed >= maxSpawners)
+                break;
+
+            Vector3 roomWorldPos = new Vector3(roomPos.x * stepSize, roomPos.y * stepSize, 0f);
+            Vector3 spawnPos = roomWorldPos + spawnerOffsetInRoom;
+
+            Instantiate(monsterSpawnerPrefab, spawnPos, Quaternion.identity, transform);
+
+            placed++;
+        }
+
+        Debug.Log("生成怪物刷新点数量：" + placed);
+    }
+}
