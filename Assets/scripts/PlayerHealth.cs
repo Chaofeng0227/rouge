@@ -3,8 +3,10 @@ using UnityEngine;
 public class PlayerHealth : MonoBehaviour
 {
     public int maxHealth = 10;
+    public float hurtInvincibilityDuration = 0.5f;
     private int currentHealth;
     private bool isDead;
+    private float hurtInvincibilityTimer;
 
     public int CurrentHealth => currentHealth;
     public int MaxHealth => maxHealth;
@@ -22,9 +24,17 @@ public class PlayerHealth : MonoBehaviour
         Debug.Log("Player HP: " + currentHealth);
     }
 
+    void Update()
+    {
+        if (hurtInvincibilityTimer > 0f)
+        {
+            hurtInvincibilityTimer -= Time.deltaTime;
+        }
+    }
+
     public void TakeDamage(int damage)
     {
-        if (isDead)
+        if (isDead || hurtInvincibilityTimer > 0f)
         {
             return;
         }
@@ -37,6 +47,7 @@ public class PlayerHealth : MonoBehaviour
         }
 
         Debug.Log("Player took damage: " + damage + ", HP: " + currentHealth);
+        hurtInvincibilityTimer = hurtInvincibilityDuration;
 
         if (currentHealth <= 0)
         {
