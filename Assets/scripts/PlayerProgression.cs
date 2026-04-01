@@ -2,9 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [DisallowMultipleComponent]
-[RequireComponent(typeof(PlayerMovement))]
-[RequireComponent(typeof(PlayerShoot))]
-[RequireComponent(typeof(PlayerHealth))]
+[RequireComponent(typeof(PlayerMovement), typeof(PlayerShoot), typeof(PlayerHealth))]
 public class PlayerProgression : MonoBehaviour
 {
     public static PlayerProgression Instance { get; private set; }
@@ -15,7 +13,6 @@ public class PlayerProgression : MonoBehaviour
     private PlayerMovement playerMovement;
     private PlayerShoot playerShoot;
     private PlayerHealth playerHealth;
-
     private bool waitingForUpgradeChoice;
 
     public int CurrentLevel { get; private set; } = 1;
@@ -24,112 +21,63 @@ public class PlayerProgression : MonoBehaviour
 
     void Awake()
     {
-        if (Instance != null && Instance != this)
-        {
-            Destroy(this);
-            return;
-        }
-
         Instance = this;
         playerMovement = GetComponent<PlayerMovement>();
         playerShoot = GetComponent<PlayerShoot>();
         playerHealth = GetComponent<PlayerHealth>();
-
         RequiredExperience = startingRequiredExperience;
-        LevelUpUI.Instance.UpdateHud(CurrentLevel, CurrentExperience, RequiredExperience);
     }
 
-    void OnDestroy()
-    {
-        if (Instance == this)
-        {
-            Instance = null;
-        }
-    }
+    void Start() { UpdateUI(); }
 
     public void AddExperience(int amount)
     {
-        if (amount <= 0 || playerHealth.IsDead)
-        {
-            return;
-        }
+        // 关键修复：根据报错，尝试访问 playerHealth.CurrentHealth
+        // 如果你的 PlayerHealth 里的变量是小写 health，请改为 playerHealth.health
+        if (amount <= 0 || (playerHealth != null && playerHealth.CurrentHealth <= 0)) return;
 
         CurrentExperience += amount;
-        LevelUpUI.Instance.UpdateHud(CurrentLevel, CurrentExperience, RequiredExperience);
+        UpdateUI();
 
-        if (!waitingForUpgradeChoice && CurrentExperience >= RequiredExperience)
-        {
-            OpenNextLevelUp();
-        }
+        if (!waitingForUpgradeChoice && CurrentExperience >= RequiredExperience) OpenNextLevelUp();
     }
+
+    void UpdateUI() { if (LevelUpUI.Instance != null) LevelUpUI.Instance.UpdateHud(CurrentLevel, CurrentExperience, RequiredExperience); }
 
     void OpenNextLevelUp()
     {
-        if (CurrentExperience < RequiredExperience)
-        {
-            return;
-        }
-
+        if (CurrentExperience < RequiredExperience) return;
         CurrentExperience -= RequiredExperience;
         CurrentLevel += 1;
         RequiredExperience = startingRequiredExperience + (CurrentLevel - 1) * requiredExperienceGrowth;
         waitingForUpgradeChoice = true;
 
-        List<PlayerUpgradeChoice> choices = BuildRandomChoices();
-        LevelUpUI.Instance.UpdateHud(CurrentLevel, CurrentExperience, RequiredExperience);
-        LevelUpUI.Instance.ShowLevelUp(CurrentLevel, choices, ApplyUpgradeChoice);
+        if (LevelUpUI.Instance != null)
+        {
+            UpdateUI();
+            LevelUpUI.Instance.ShowLevelUp(CurrentLevel, BuildRandomChoices(), ApplyUpgradeChoice);
+        }
     }
 
     void ApplyUpgradeChoice(PlayerUpgradeChoice choice)
     {
         choice.Apply?.Invoke();
         waitingForUpgradeChoice = false;
-        LevelUpUI.Instance.UpdateHud(CurrentLevel, CurrentExperience, RequiredExperience);
-
-        if (CurrentExperience >= RequiredExperience)
-        {
-            OpenNextLevelUp();
-        }
+        UpdateUI();
+        if (CurrentExperience >= RequiredExperience) OpenNextLevelUp();
     }
 
     List<PlayerUpgradeChoice> BuildRandomChoices()
     {
-        List<PlayerUpgradeChoice> pool = new List<PlayerUpgradeChoice>
-        {
-            new PlayerUpgradeChoice(
-                "Swift Footwork",
-                "Move speed +1",
-                () => playerMovement.moveSpeed += 1f),
-
-            new PlayerUpgradeChoice(
-                "Heavy Rounds",
-                "Bullet damage +1",
-                () => playerShoot.bulletDamage += 1),
-
-            new PlayerUpgradeChoice(
-                "Rapid Trigger",
-                "Shoot 12% faster",
-                () => playerShoot.fireRate = Mathf.Max(0.05f, playerShoot.fireRate * 0.88f)),
-
-            new PlayerUpgradeChoice(
-                "Vitality Boost",
-                "Max HP +2 and heal 2",
-                () => playerHealth.IncreaseMaxHealth(2, 2)),
-
-            new PlayerUpgradeChoice(
-                "Ballistic Force",
-                "Bullet speed +3",
-                () => playerShoot.bulletSpeed += 3f)
+        List<PlayerUpgradeChoice> pool = new List<PlayerUpgradeChoice> {
+            new PlayerUpgradeChoice("Swift Footwork", "Speed +1", () => playerMovement.moveSpeed += 1f),
+            new PlayerUpgradeChoice("Heavy Rounds", "Damage +1", () => playerShoot.bulletDamage += 1),
+            new PlayerUpgradeChoice("Rapid Trigger", "Speed 12% Up", () => playerShoot.fireRate *= 0.88f),
+            new PlayerUpgradeChoice("Vitality", "Max HP +2", () => playerHealth.IncreaseMaxHealth(2, 2)),
+            new PlayerUpgradeChoice("Force", "Bullet Speed +3", () => playerShoot.bulletSpeed += 3f)
         };
-
-        List<PlayerUpgradeChoice> results = new List<PlayerUpgradeChoice>();
-        while (pool.Count > 0 && results.Count < 3)
-        {
-            int index = Random.Range(0, pool.Count);
-            results.Add(pool[index]);
-            pool.RemoveAt(index);
-        }
-
-        return results;
+        List<PlayerUpgradeChoice> res = new List<PlayerUpgradeChoice>();
+        while (pool.Count > 0 && res.Count < 3) { int idx = Random.Range(0, pool.Count); res.Add(pool[idx]); pool.RemoveAt(idx); }
+        return res;
     }
 }

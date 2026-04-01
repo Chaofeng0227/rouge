@@ -2,10 +2,28 @@ using UnityEngine;
 
 public class EnemyDamage : MonoBehaviour
 {
-    public int damage = 1;
-    public float attackInterval = 1f;
+    [Header("伤害配置 (肉鸽成长)")]
+    public int baseDamage = 1;
+    public int damageIncreasePerLevel = 1;
 
+    // 【关键修复】：恢复公开的 damage 变量，让 EnemyStagedDirector 能找到它
+    public int damage;
+
+    public float attackInterval = 1f;
     private float attackTimer = 0f;
+
+    void Start()
+    {
+        // 计算当前层数的实际伤害
+        damage = baseDamage;
+        DungeonGenerator generator = Object.FindFirstObjectByType<DungeonGenerator>();
+
+        if (generator != null)
+        {
+            int extraDamage = (generator.currentLevel - 1) * damageIncreasePerLevel;
+            damage += extraDamage;
+        }
+    }
 
     void Update()
     {

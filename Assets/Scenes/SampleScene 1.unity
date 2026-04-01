@@ -409,7 +409,8 @@ PrefabInstance:
       propertyPath: m_Name
       value: LevelManager
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 976714634674054395, guid: f78f9f90fb6f5054e8b41ae8a680daab, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
@@ -437,6 +438,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 86f5721f208c3fc44ad157ab7ada8eb8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  currentLevel: 0
   roomPool:
   - roomName: 
     prefab: {fileID: 2056994338170135465, guid: dae122042f0b60d4788b3ed3cc922232, type: 3}
@@ -538,11 +540,6 @@ MonoBehaviour:
   corridorHorizontal: {fileID: 969323198060519311, guid: 8aac71acded339a4fb773597dbc29945, type: 3}
   corridorVertical: {fileID: 7472678672134673733, guid: 6fd59c8b5ceaaac4ba947ff0976e16a0, type: 3}
   playerPrefab: {fileID: 3611287419726806435, guid: 1975bebe44aa0d9469f10d695e661a31, type: 3}
-  spawnNewPlayer: 1
-  monsterSpawnerPrefab: {fileID: 5506828052800747190, guid: b657308d3deb0144a82a287b20d58725, type: 3}
-  maxSpawners: 5
-  minSpawnerDistance: 30
-  spawnerOffsetInRoom: {x: 0, y: 0, z: 0}
 --- !u!114 &1199897228
 MonoBehaviour:
   m_ObjectHideFlags: 0
