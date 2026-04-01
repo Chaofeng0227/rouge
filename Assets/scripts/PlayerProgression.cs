@@ -60,12 +60,20 @@ public class PlayerProgression : MonoBehaviour
         CurrentExperience -= RequiredExperience;
         CurrentLevel += 1;
         RequiredExperience = startingRequiredExperience + (CurrentLevel - 1) * requiredExperienceGrowth;
+        List<PlayerUpgradeChoice> choices = BuildRandomChoices();
+        if (choices.Count == 0)
+        {
+            waitingForUpgradeChoice = false;
+            UpdateUI();
+            return;
+        }
+
         waitingForUpgradeChoice = true;
 
         if (LevelUpUI.Instance != null)
         {
             UpdateUI();
-            LevelUpUI.Instance.ShowLevelUp(CurrentLevel, BuildRandomChoices(), ApplyUpgradeChoice);
+            LevelUpUI.Instance.ShowLevelUp(CurrentLevel, choices, ApplyUpgradeChoice);
         }
     }
 
@@ -104,15 +112,15 @@ public class PlayerProgression : MonoBehaviour
     {
         List<PlayerUpgradeChoice> allChoices = new List<PlayerUpgradeChoice>
         {
-            new PlayerUpgradeChoice("swift_footwork", "Swift Footwork", "Speed +1", PlayerUpgradeCategory.Basic, 10, 5,
+            new PlayerUpgradeChoice("swift_footwork", "Swift Footwork", "Speed +1", PlayerUpgradeCategory.Basic, 10, 0,
                 () => playerMovement.moveSpeed += 1f),
-            new PlayerUpgradeChoice("heavy_rounds", "Heavy Rounds", "Damage +1", PlayerUpgradeCategory.Basic, 10, 6,
+            new PlayerUpgradeChoice("heavy_rounds", "Heavy Rounds", "Damage +1", PlayerUpgradeCategory.Basic, 10, 0,
                 () => playerShoot.bulletDamage += 1),
-            new PlayerUpgradeChoice("rapid_trigger", "Rapid Trigger", "Fire rate 12% up", PlayerUpgradeCategory.Basic, 10, 6,
+            new PlayerUpgradeChoice("rapid_trigger", "Rapid Trigger", "Fire rate 12% up", PlayerUpgradeCategory.Basic, 10, 0,
                 () => playerShoot.fireRate *= 0.88f),
-            new PlayerUpgradeChoice("vitality", "Vitality", "Max HP +2 and heal 2", PlayerUpgradeCategory.Basic, 8, 5,
+            new PlayerUpgradeChoice("vitality", "Vitality", "Max HP +2 and heal 2", PlayerUpgradeCategory.Basic, 8, 0,
                 () => playerHealth.IncreaseMaxHealth(2, 2)),
-            new PlayerUpgradeChoice("force", "Force", "Bullet speed +3", PlayerUpgradeCategory.Basic, 8, 5,
+            new PlayerUpgradeChoice("force", "Force", "Bullet speed +3", PlayerUpgradeCategory.Basic, 8, 0,
                 () => playerShoot.bulletSpeed += 3f),
 
             new PlayerUpgradeChoice("split_shot_core", "Split Shot", "Shots split into two side bolts", PlayerUpgradeCategory.Core, 2, 1,
@@ -123,7 +131,10 @@ public class PlayerProgression : MonoBehaviour
             new PlayerUpgradeChoice("split_charge", "Split Charge", "Split bolt damage +1", PlayerUpgradeCategory.Synergy, 3, 3,
                 () => playerShoot.splitShotDamageBonus += 1, "split_shot_core"),
             new PlayerUpgradeChoice("split_velocity", "Split Velocity", "Split bolt speed +2", PlayerUpgradeCategory.Synergy, 2, 2,
-                () => playerShoot.splitShotSpeedBonus += 2f, "split_shot_core")
+                () => playerShoot.splitShotSpeedBonus += 2f, "split_shot_core"),
+
+            new PlayerUpgradeChoice("frost_shot_core", "Frost Shot", "Hits chill enemies. 3 chill stacks freeze them", PlayerUpgradeCategory.Core, 3, 1,
+                () => playerShoot.frostShotEnabled = true)
         };
 
         List<PlayerUpgradeChoice> filteredChoices = new List<PlayerUpgradeChoice>();
@@ -140,7 +151,7 @@ public class PlayerProgression : MonoBehaviour
 
     bool IsChoiceAvailable(PlayerUpgradeChoice choice)
     {
-        if (GetUpgradeStack(choice.Id) >= choice.MaxStacks)
+        if (choice.MaxStacks > 0 && GetUpgradeStack(choice.Id) >= choice.MaxStacks)
         {
             return false;
         }
@@ -222,3 +233,4 @@ public class PlayerProgression : MonoBehaviour
         AddExperience(neededExperience);
     }
 }
+

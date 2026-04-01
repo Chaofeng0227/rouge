@@ -273,11 +273,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   bulletPrefab: {fileID: 2372398386561324944, guid: 9718f64ed1440f644b6d7c2c682ad8a1, type: 3}
+  frostBulletPrefab: {fileID: 2372398386561324944, guid: b2c4a0b36f9d4b9a8c1f2e3d4a5b6c70, type: 3}
   firePoint: {fileID: 1711144170135395132}
   bulletSpeed: 10
   fireRate: 0.2
   firePointDistance: 0.45
   bulletDamage: 1
+  splitShotSideCount: 0
+  splitShotSpreadAngle: 12
+  splitShotDamageBonus: 0
+  splitShotSpeedBonus: 0
+  frostShotEnabled: 0
+  frostSlowMultiplier: 0.6
+  frostDuration: 1.5
+  frostFreezeThreshold: 3
+  frostFreezeDuration: 1.25
 --- !u!114 &684855369768423428
 MonoBehaviour:
   m_ObjectHideFlags: 0

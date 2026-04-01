@@ -1,8 +1,9 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class PlayerShoot : MonoBehaviour
 {
     public GameObject bulletPrefab;
+    public GameObject frostBulletPrefab;
     public Transform firePoint;
     public float bulletSpeed = 10f;
     public float fireRate = 0.2f;
@@ -12,6 +13,11 @@ public class PlayerShoot : MonoBehaviour
     public float splitShotSpreadAngle = 12f;
     public int splitShotDamageBonus;
     public float splitShotSpeedBonus;
+    public bool frostShotEnabled;
+    public float frostSlowMultiplier = 0.6f;
+    public float frostDuration = 1.5f;
+    public int frostFreezeThreshold = 3;
+    public float frostFreezeDuration = 1.25f;
 
     private float fireTimer;
 
@@ -55,7 +61,8 @@ public class PlayerShoot : MonoBehaviour
 
     void SpawnBullet(Vector3 spawnPosition, Vector2 direction, int damage, float speed)
     {
-        GameObject bullet = Instantiate(bulletPrefab, spawnPosition, Quaternion.identity);
+        GameObject prefabToSpawn = frostShotEnabled && frostBulletPrefab != null ? frostBulletPrefab : bulletPrefab;
+        GameObject bullet = Instantiate(prefabToSpawn, spawnPosition, Quaternion.identity);
 
         Rigidbody2D rb = bullet.GetComponent<Rigidbody2D>();
         if (rb != null)
@@ -67,6 +74,11 @@ public class PlayerShoot : MonoBehaviour
         if (bulletComponent != null)
         {
             bulletComponent.damage = Mathf.Max(1, damage);
+            bulletComponent.appliesFrost = frostShotEnabled;
+            bulletComponent.frostSlowMultiplier = frostSlowMultiplier;
+            bulletComponent.frostDuration = frostDuration;
+            bulletComponent.frostFreezeThreshold = frostFreezeThreshold;
+            bulletComponent.frostFreezeDuration = frostFreezeDuration;
         }
 
         float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
@@ -97,3 +109,4 @@ public class PlayerShoot : MonoBehaviour
         firePoint.rotation = Quaternion.Euler(0f, 0f, angle);
     }
 }
+
