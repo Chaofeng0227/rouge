@@ -8,6 +8,10 @@ public class PlayerShoot : MonoBehaviour
     public float fireRate = 0.2f;
     public float firePointDistance = 0.45f;
     public int bulletDamage = 1;
+    public int splitShotSideCount;
+    public float splitShotSpreadAngle = 12f;
+    public int splitShotDamageBonus;
+    public float splitShotSpeedBonus;
 
     private float fireTimer;
 
@@ -30,23 +34,54 @@ public class PlayerShoot : MonoBehaviour
 
     void Shoot(Vector2 direction)
     {
+        if (direction.sqrMagnitude <= 0.001f)
+        {
+            return;
+        }
+
         Vector3 spawnPosition = firePoint != null ? firePoint.position : transform.position;
+        SpawnBullet(spawnPosition, direction, bulletDamage, bulletSpeed);
+
+        for (int i = 1; i <= splitShotSideCount; i++)
+        {
+            float angleOffset = splitShotSpreadAngle * i;
+            int splitDamage = bulletDamage + splitShotDamageBonus;
+            float splitSpeed = bulletSpeed + splitShotSpeedBonus;
+
+            SpawnBullet(spawnPosition, Rotate(direction, angleOffset), splitDamage, splitSpeed);
+            SpawnBullet(spawnPosition, Rotate(direction, -angleOffset), splitDamage, splitSpeed);
+        }
+    }
+
+    void SpawnBullet(Vector3 spawnPosition, Vector2 direction, int damage, float speed)
+    {
         GameObject bullet = Instantiate(bulletPrefab, spawnPosition, Quaternion.identity);
 
         Rigidbody2D rb = bullet.GetComponent<Rigidbody2D>();
         if (rb != null)
         {
-            rb.velocity = direction * bulletSpeed;
+            rb.velocity = direction.normalized * Mathf.Max(0.1f, speed);
         }
 
         Bullet bulletComponent = bullet.GetComponent<Bullet>();
         if (bulletComponent != null)
         {
-            bulletComponent.damage = bulletDamage;
+            bulletComponent.damage = Mathf.Max(1, damage);
         }
 
         float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
         bullet.transform.rotation = Quaternion.Euler(0, 0, angle);
+    }
+
+    Vector2 Rotate(Vector2 vector, float degrees)
+    {
+        float radians = degrees * Mathf.Deg2Rad;
+        float sin = Mathf.Sin(radians);
+        float cos = Mathf.Cos(radians);
+
+        return new Vector2(
+            vector.x * cos - vector.y * sin,
+            vector.x * sin + vector.y * cos).normalized;
     }
 
     void UpdateFirePoint(Vector2 direction)

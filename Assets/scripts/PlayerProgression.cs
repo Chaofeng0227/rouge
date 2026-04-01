@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+ï»¿using System.Collections.Generic;
 using UnityEngine;
 
 [DisallowMultipleComponent]
@@ -9,11 +9,13 @@ public class PlayerProgression : MonoBehaviour
 
     [SerializeField] private int startingRequiredExperience = 5;
     [SerializeField] private int requiredExperienceGrowth = 3;
+    [SerializeField] private KeyCode debugLevelUpKey = KeyCode.B;
 
     private PlayerMovement playerMovement;
     private PlayerShoot playerShoot;
     private PlayerHealth playerHealth;
     private bool waitingForUpgradeChoice;
+    private readonly Dictionary<string, int> upgradeStacks = new Dictionary<string, int>();
 
     public int CurrentLevel { get; private set; } = 1;
     public int CurrentExperience { get; private set; }
@@ -30,10 +32,18 @@ public class PlayerProgression : MonoBehaviour
 
     void Start() { UpdateUI(); }
 
+    void Update()
+    {
+        if (Input.GetKeyDown(debugLevelUpKey))
+        {
+            TriggerDebugLevelUp();
+        }
+    }
+
     public void AddExperience(int amount)
     {
-        // ¹Ø¼üĞŞ¸´£º¸ù¾İ±¨´í£¬³¢ÊÔ·ÃÎÊ playerHealth.CurrentHealth
-        // Èç¹ûÄãµÄ PlayerHealth ÀïµÄ±äÁ¿ÊÇĞ¡Ğ´ health£¬Çë¸ÄÎª playerHealth.health
+        // å…³é”®ä¿®å¤ï¼šæ ¹æ®æŠ¥é”™ï¼Œå°è¯•è®¿é—® playerHealth.CurrentHealth
+        // å¦‚æœä½ çš„ PlayerHealth é‡Œçš„å˜é‡æ˜¯å°å†™ healthï¼Œè¯·æ”¹ä¸º playerHealth.health
         if (amount <= 0 || (playerHealth != null && playerHealth.CurrentHealth <= 0)) return;
 
         CurrentExperience += amount;
@@ -62,6 +72,7 @@ public class PlayerProgression : MonoBehaviour
     void ApplyUpgradeChoice(PlayerUpgradeChoice choice)
     {
         choice.Apply?.Invoke();
+        upgradeStacks[choice.Id] = GetUpgradeStack(choice.Id) + 1;
         waitingForUpgradeChoice = false;
         UpdateUI();
         if (CurrentExperience >= RequiredExperience) OpenNextLevelUp();
@@ -69,15 +80,145 @@ public class PlayerProgression : MonoBehaviour
 
     List<PlayerUpgradeChoice> BuildRandomChoices()
     {
-        List<PlayerUpgradeChoice> pool = new List<PlayerUpgradeChoice> {
-            new PlayerUpgradeChoice("Swift Footwork", "Speed +1", () => playerMovement.moveSpeed += 1f),
-            new PlayerUpgradeChoice("Heavy Rounds", "Damage +1", () => playerShoot.bulletDamage += 1),
-            new PlayerUpgradeChoice("Rapid Trigger", "Speed 12% Up", () => playerShoot.fireRate *= 0.88f),
-            new PlayerUpgradeChoice("Vitality", "Max HP +2", () => playerHealth.IncreaseMaxHealth(2, 2)),
-            new PlayerUpgradeChoice("Force", "Bullet Speed +3", () => playerShoot.bulletSpeed += 3f)
+        List<PlayerUpgradeChoice> availableChoices = BuildAvailableChoices();
+        List<PlayerUpgradeChoice> selectedChoices = new List<PlayerUpgradeChoice>();
+
+        TryAddCategoryChoice(availableChoices, selectedChoices, PlayerUpgradeCategory.Basic);
+
+        while (availableChoices.Count > 0 && selectedChoices.Count < 3)
+        {
+            PlayerUpgradeChoice choice = TakeWeightedChoice(availableChoices);
+            if (choice == null)
+            {
+                break;
+            }
+
+            selectedChoices.Add(choice);
+            RemoveChoice(availableChoices, choice.Id);
+        }
+
+        return selectedChoices;
+    }
+
+    List<PlayerUpgradeChoice> BuildAvailableChoices()
+    {
+        List<PlayerUpgradeChoice> allChoices = new List<PlayerUpgradeChoice>
+        {
+            new PlayerUpgradeChoice("swift_footwork", "Swift Footwork", "Speed +1", PlayerUpgradeCategory.Basic, 10, 5,
+                () => playerMovement.moveSpeed += 1f),
+            new PlayerUpgradeChoice("heavy_rounds", "Heavy Rounds", "Damage +1", PlayerUpgradeCategory.Basic, 10, 6,
+                () => playerShoot.bulletDamage += 1),
+            new PlayerUpgradeChoice("rapid_trigger", "Rapid Trigger", "Fire rate 12% up", PlayerUpgradeCategory.Basic, 10, 6,
+                () => playerShoot.fireRate *= 0.88f),
+            new PlayerUpgradeChoice("vitality", "Vitality", "Max HP +2 and heal 2", PlayerUpgradeCategory.Basic, 8, 5,
+                () => playerHealth.IncreaseMaxHealth(2, 2)),
+            new PlayerUpgradeChoice("force", "Force", "Bullet speed +3", PlayerUpgradeCategory.Basic, 8, 5,
+                () => playerShoot.bulletSpeed += 3f),
+
+            new PlayerUpgradeChoice("split_shot_core", "Split Shot", "Shots split into two side bolts", PlayerUpgradeCategory.Core, 2, 1,
+                () => playerShoot.splitShotSideCount = Mathf.Max(playerShoot.splitShotSideCount, 1)),
+
+            new PlayerUpgradeChoice("split_barrage", "Split Barrage", "One more side bolt per side", PlayerUpgradeCategory.Synergy, 3, 2,
+                () => playerShoot.splitShotSideCount += 1, "split_shot_core"),
+            new PlayerUpgradeChoice("split_charge", "Split Charge", "Split bolt damage +1", PlayerUpgradeCategory.Synergy, 3, 3,
+                () => playerShoot.splitShotDamageBonus += 1, "split_shot_core"),
+            new PlayerUpgradeChoice("split_velocity", "Split Velocity", "Split bolt speed +2", PlayerUpgradeCategory.Synergy, 2, 2,
+                () => playerShoot.splitShotSpeedBonus += 2f, "split_shot_core")
         };
-        List<PlayerUpgradeChoice> res = new List<PlayerUpgradeChoice>();
-        while (pool.Count > 0 && res.Count < 3) { int idx = Random.Range(0, pool.Count); res.Add(pool[idx]); pool.RemoveAt(idx); }
-        return res;
+
+        List<PlayerUpgradeChoice> filteredChoices = new List<PlayerUpgradeChoice>();
+        foreach (PlayerUpgradeChoice choice in allChoices)
+        {
+            if (IsChoiceAvailable(choice))
+            {
+                filteredChoices.Add(choice);
+            }
+        }
+
+        return filteredChoices;
+    }
+
+    bool IsChoiceAvailable(PlayerUpgradeChoice choice)
+    {
+        if (GetUpgradeStack(choice.Id) >= choice.MaxStacks)
+        {
+            return false;
+        }
+
+        foreach (string requiredUpgradeId in choice.RequiredUpgradeIds)
+        {
+            if (GetUpgradeStack(requiredUpgradeId) <= 0)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    int GetUpgradeStack(string upgradeId)
+    {
+        int currentStack;
+        return upgradeStacks.TryGetValue(upgradeId, out currentStack) ? currentStack : 0;
+    }
+
+    void TryAddCategoryChoice(List<PlayerUpgradeChoice> availableChoices, List<PlayerUpgradeChoice> selectedChoices, PlayerUpgradeCategory category)
+    {
+        List<PlayerUpgradeChoice> categoryChoices = availableChoices.FindAll(choice => choice.Category == category);
+        if (categoryChoices.Count == 0)
+        {
+            return;
+        }
+
+        PlayerUpgradeChoice selectedChoice = TakeWeightedChoice(categoryChoices);
+        if (selectedChoice == null)
+        {
+            return;
+        }
+
+        selectedChoices.Add(selectedChoice);
+        RemoveChoice(availableChoices, selectedChoice.Id);
+    }
+
+    PlayerUpgradeChoice TakeWeightedChoice(List<PlayerUpgradeChoice> choices)
+    {
+        if (choices == null || choices.Count == 0)
+        {
+            return null;
+        }
+
+        int totalWeight = 0;
+        foreach (PlayerUpgradeChoice choice in choices)
+        {
+            totalWeight += Mathf.Max(1, choice.Weight);
+        }
+
+        int roll = Random.Range(0, totalWeight);
+        foreach (PlayerUpgradeChoice choice in choices)
+        {
+            roll -= Mathf.Max(1, choice.Weight);
+            if (roll < 0)
+            {
+                return choice;
+            }
+        }
+
+        return choices[choices.Count - 1];
+    }
+
+    void RemoveChoice(List<PlayerUpgradeChoice> choices, string id)
+    {
+        choices.RemoveAll(choice => choice.Id == id);
+    }
+
+    void TriggerDebugLevelUp()
+    {
+        if (playerHealth != null && playerHealth.CurrentHealth <= 0)
+        {
+            return;
+        }
+
+        int neededExperience = Mathf.Max(1, RequiredExperience - CurrentExperience);
+        AddExperience(neededExperience);
     }
 }
