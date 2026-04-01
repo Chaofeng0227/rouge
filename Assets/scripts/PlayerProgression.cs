@@ -16,6 +16,8 @@ public class PlayerProgression : MonoBehaviour
     private PlayerHealth playerHealth;
     private bool waitingForUpgradeChoice;
     private readonly Dictionary<string, int> upgradeStacks = new Dictionary<string, int>();
+    private float heavyRoundsProgress;
+    private float vitalityProgress;
 
     public int CurrentLevel { get; private set; } = 1;
     public int CurrentExperience { get; private set; }
@@ -112,16 +114,16 @@ public class PlayerProgression : MonoBehaviour
     {
         List<PlayerUpgradeChoice> allChoices = new List<PlayerUpgradeChoice>
         {
-            new PlayerUpgradeChoice("swift_footwork", "Swift Footwork", "Speed +1", PlayerUpgradeCategory.Basic, 10, 0,
-                () => playerMovement.moveSpeed += 1f),
-            new PlayerUpgradeChoice("heavy_rounds", "Heavy Rounds", "Damage +1", PlayerUpgradeCategory.Basic, 10, 0,
-                () => playerShoot.bulletDamage += 1),
-            new PlayerUpgradeChoice("rapid_trigger", "Rapid Trigger", "Fire rate 12% up", PlayerUpgradeCategory.Basic, 10, 0,
-                () => playerShoot.fireRate *= 0.88f),
-            new PlayerUpgradeChoice("vitality", "Vitality", "Max HP +2 and heal 2", PlayerUpgradeCategory.Basic, 8, 0,
-                () => playerHealth.IncreaseMaxHealth(2, 2)),
-            new PlayerUpgradeChoice("force", "Force", "Bullet speed +3", PlayerUpgradeCategory.Basic, 8, 0,
-                () => playerShoot.bulletSpeed += 3f),
+            new PlayerUpgradeChoice("swift_footwork", "Swift Footwork", $"Speed +{FormatFloat(GetBasicGain("swift_footwork", 1f))}", PlayerUpgradeCategory.Basic, 10, 0,
+                ApplySwiftFootworkUpgrade),
+            new PlayerUpgradeChoice("heavy_rounds", "Heavy Rounds", $"Damage growth +{FormatFloat(GetBasicGain("heavy_rounds", 1f))}", PlayerUpgradeCategory.Basic, 10, 0,
+                ApplyHeavyRoundsUpgrade),
+            new PlayerUpgradeChoice("rapid_trigger", "Rapid Trigger", $"Fire rate {FormatPercent(GetRapidTriggerPercent())} up", PlayerUpgradeCategory.Basic, 10, 0,
+                ApplyRapidTriggerUpgrade),
+            new PlayerUpgradeChoice("vitality", "Vitality", $"Max HP growth +{FormatFloat(GetBasicGain("vitality", 2f))}", PlayerUpgradeCategory.Basic, 8, 0,
+                ApplyVitalityUpgrade),
+            new PlayerUpgradeChoice("force", "Force", $"Bullet speed +{FormatFloat(GetBasicGain("force", 3f))}", PlayerUpgradeCategory.Basic, 8, 0,
+                ApplyForceUpgrade),
 
             new PlayerUpgradeChoice("split_shot_core", "Split Shot", "Shots split into two side bolts", PlayerUpgradeCategory.Core, 2, 1,
                 () => playerShoot.splitShotSideCount = Mathf.Max(playerShoot.splitShotSideCount, 1)),
@@ -220,6 +222,89 @@ public class PlayerProgression : MonoBehaviour
     void RemoveChoice(List<PlayerUpgradeChoice> choices, string id)
     {
         choices.RemoveAll(choice => choice.Id == id);
+    }
+
+    float GetBasicGain(string upgradeId, float baseGain)
+    {
+        int stack = GetUpgradeStack(upgradeId);
+        float factor;
+
+        if (stack < 3)
+        {
+            factor = 1f;
+        }
+        else if (stack < 6)
+        {
+            factor = 0.7f;
+        }
+        else if (stack < 10)
+        {
+            factor = 0.45f;
+        }
+        else
+        {
+            factor = 0.3f;
+        }
+
+        return baseGain * factor;
+    }
+
+    float GetRapidTriggerPercent()
+    {
+        return GetBasicGain("rapid_trigger", 12f);
+    }
+
+    string FormatFloat(float value)
+    {
+        if (Mathf.Approximately(value, Mathf.Round(value)))
+        {
+            return Mathf.RoundToInt(value).ToString();
+        }
+
+        return value.ToString("0.##");
+    }
+
+    string FormatPercent(float value)
+    {
+        return Mathf.Max(0.1f, value).ToString("0.#") + "%";
+    }
+
+    void ApplySwiftFootworkUpgrade()
+    {
+        playerMovement.moveSpeed += GetBasicGain("swift_footwork", 1f);
+    }
+
+    void ApplyHeavyRoundsUpgrade()
+    {
+        heavyRoundsProgress += GetBasicGain("heavy_rounds", 1f);
+        int gainedDamage = Mathf.FloorToInt(heavyRoundsProgress + 0.0001f);
+        if (gainedDamage > 0)
+        {
+            playerShoot.bulletDamage += gainedDamage;
+            heavyRoundsProgress -= gainedDamage;
+        }
+    }
+
+    void ApplyRapidTriggerUpgrade()
+    {
+        float reduction = Mathf.Clamp01(GetRapidTriggerPercent() / 100f);
+        playerShoot.fireRate *= 1f - reduction;
+    }
+
+    void ApplyVitalityUpgrade()
+    {
+        vitalityProgress += GetBasicGain("vitality", 2f);
+        int gainedHealth = Mathf.FloorToInt(vitalityProgress + 0.0001f);
+        if (gainedHealth > 0)
+        {
+            playerHealth.IncreaseMaxHealth(gainedHealth, gainedHealth);
+            vitalityProgress -= gainedHealth;
+        }
+    }
+
+    void ApplyForceUpgrade()
+    {
+        playerShoot.bulletSpeed += GetBasicGain("force", 3f);
     }
 
     void TriggerDebugLevelUp()
