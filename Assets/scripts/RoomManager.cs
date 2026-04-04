@@ -35,6 +35,12 @@ public class RoomManager : MonoBehaviour
 
         if (isEndRoom)
         {
+            if (suppressPortal)
+            {
+                SpawnBoss();
+                return;
+            }
+
             if (!suppressPortal && centerSpawnPoint != null && portalPrefab != null)
             {
                 Instantiate(portalPrefab, centerSpawnPoint.position, Quaternion.identity, transform);
@@ -108,6 +114,26 @@ public class RoomManager : MonoBehaviour
 
         EnemyEliteShooter eliteShooter = enemy.AddComponent<EnemyEliteShooter>();
         eliteShooter.InitializeElite();
+    }
+
+    void SpawnBoss()
+    {
+        if (enemyPrefabs == null || enemyPrefabs.Length == 0)
+        {
+            return;
+        }
+
+        GameObject bossBase = enemyPrefabs[0];
+        Vector3 spawnPosition = centerSpawnPoint != null ? centerSpawnPoint.position : transform.position;
+        GameObject bossObject = Instantiate(bossBase, spawnPosition, Quaternion.identity, transform);
+
+        BossController bossController = bossObject.GetComponent<BossController>();
+        if (bossController == null)
+        {
+            bossController = bossObject.AddComponent<BossController>();
+        }
+
+        bossController.InitializeBoss();
     }
 
     void SpawnProps()

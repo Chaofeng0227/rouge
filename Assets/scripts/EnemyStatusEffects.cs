@@ -58,6 +58,11 @@ public class EnemyStatusEffects : MonoBehaviour
 
     public void ApplyFrost(int stacksToAdd, float chillDuration, float chilledMoveMultiplier, int freezeThreshold, float freezeDuration)
     {
+        if (GetComponent<BossController>() != null)
+        {
+            return;
+        }
+
         if (IsFrozen)
         {
             frozenTimer = Mathf.Max(frozenTimer, freezeDuration);
