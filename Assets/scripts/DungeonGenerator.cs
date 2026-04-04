@@ -16,6 +16,7 @@ public class DungeonGenerator : MonoBehaviour
 
     [Header("Game State")]
     public int currentLevel = 0;
+    public int bossFloorNumber = 5;
 
     [Header("Room Setup")]
     public List<RoomPrefab> roomPool;
@@ -49,6 +50,7 @@ public class DungeonGenerator : MonoBehaviour
     private Dictionary<Vector2Int, HashSet<Vector2Int>> graph = new Dictionary<Vector2Int, HashSet<Vector2Int>>();
     private Dictionary<Vector2Int, RoomPrefab> spawnedRooms = new Dictionary<Vector2Int, RoomPrefab>();
     private Vector2Int endRoomPos;
+    private GameObject cachedBossRoomPrefab;
 
     void Start()
     {
@@ -58,6 +60,14 @@ public class DungeonGenerator : MonoBehaviour
         }
 
         GenerateDungeon();
+    }
+
+    void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.F5))
+        {
+            JumpToBossFloorDebug();
+        }
     }
 
     public void GenerateDungeon()
@@ -73,10 +83,25 @@ public class DungeonGenerator : MonoBehaviour
         graph.Clear();
         spawnedRooms.Clear();
 
-        BuildMainPath();
-        BuildBranches();
+        if (IsBossFloor())
+        {
+            BuildBossFloorLayout();
+        }
+        else
+        {
+            BuildMainPath();
+            BuildBranches();
+        }
+
         SpawnDungeonFromGraph();
         PlacePlayerAtStart();
+    }
+
+    public void JumpToBossFloorDebug()
+    {
+        currentLevel = bossFloorNumber - 1;
+        Debug.Log($"<color=yellow>Debug jump to floor {bossFloorNumber}</color>");
+        GenerateDungeon();
     }
 
     void BuildMainPath()
@@ -96,6 +121,24 @@ public class DungeonGenerator : MonoBehaviour
                 AddConnection(mainPath[i - 1], mainPath[i]);
             }
         }
+    }
+
+    void BuildBossFloorLayout()
+    {
+        Vector2Int start = Vector2Int.zero;
+        Vector2Int staging = new Vector2Int(1, 0);
+        Vector2Int northSupport = new Vector2Int(1, 1);
+        Vector2Int southSupport = new Vector2Int(1, -1);
+        Vector2Int bossApproach = new Vector2Int(2, 0);
+        Vector2Int bossArena = new Vector2Int(3, 0);
+
+        endRoomPos = bossArena;
+
+        AddConnection(start, staging);
+        AddConnection(staging, northSupport);
+        AddConnection(staging, southSupport);
+        AddConnection(staging, bossApproach);
+        AddConnection(bossApproach, bossArena);
     }
 
     void BuildBranches()
@@ -289,7 +332,17 @@ public class DungeonGenerator : MonoBehaviour
 
     void PlaceRoom(Vector2Int pos, RoomPrefab room)
     {
-        GameObject roomInstance = Instantiate(room.prefab, new Vector3(pos.x * stepSize, pos.y * stepSize, 0f), Quaternion.identity, transform);
+        GameObject prefabToSpawn = room.prefab;
+        if (IsBossFloor() && pos == endRoomPos)
+        {
+            GameObject bossRoomPrefab = GetBossRoomPrefab();
+            if (bossRoomPrefab != null)
+            {
+                prefabToSpawn = bossRoomPrefab;
+            }
+        }
+
+        GameObject roomInstance = Instantiate(prefabToSpawn, new Vector3(pos.x * stepSize, pos.y * stepSize, 0f), Quaternion.identity, transform);
         spawnedRooms.Add(pos, room);
 
         RoomManager rm = roomInstance.GetComponent<RoomManager>();
@@ -298,7 +351,8 @@ public class DungeonGenerator : MonoBehaviour
             rm.InitializeRoom(
                 pos == Vector2Int.zero,
                 graph[pos].Count == 1 && pos != Vector2Int.zero && pos != endRoomPos,
-                pos == endRoomPos);
+                pos == endRoomPos,
+                IsBossFloor() && pos == endRoomPos);
         }
     }
 
@@ -385,5 +439,20 @@ public class DungeonGenerator : MonoBehaviour
         }
 
         return best;
+    }
+
+    bool IsBossFloor()
+    {
+        return currentLevel >= bossFloorNumber;
+    }
+
+    GameObject GetBossRoomPrefab()
+    {
+        if (cachedBossRoomPrefab == null)
+        {
+            cachedBossRoomPrefab = Resources.Load<GameObject>("Rooms/BossRoom");
+        }
+
+        return cachedBossRoomPrefab;
     }
 }
