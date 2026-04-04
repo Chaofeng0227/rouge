@@ -4,11 +4,15 @@ using UnityEngine;
 [RequireComponent(typeof(EnemyHealth), typeof(SpriteRenderer), typeof(Rigidbody2D))]
 public class BossController : MonoBehaviour
 {
+    private const string BossVisualResourcePath = "BossVisuals/WoodenAarakocraBoss";
+
     [Header("Boss Stats")]
     [SerializeField] private int baseBossHealth = 80;
     [SerializeField] private int bossExperienceReward = 20;
     [SerializeField] private float bossScaleMultiplier = 2.25f;
     [SerializeField] private Color bossTint = new Color(1f, 0.48f, 0.2f, 1f);
+    [SerializeField] private float bossVisualScale = 0.24f;
+    [SerializeField] private Vector3 bossVisualOffset = new Vector3(0f, 0.1f, 0f);
 
     [Header("Boss Movement")]
     [SerializeField] private float activationRange = 11f;
@@ -39,6 +43,7 @@ public class BossController : MonoBehaviour
     private float strafeTimer;
     private int strafeDirection = 1;
     private Vector3 spawnPosition;
+    private GameObject bossVisualInstance;
 
     private enum BossPhase
     {
@@ -149,14 +154,14 @@ public class BossController : MonoBehaviour
             rb.velocity = Vector2.zero;
         }
 
+        AttachBossVisual();
         transform.localScale *= bossScaleMultiplier;
 
         foreach (SpriteRenderer spriteRenderer in spriteRenderers)
         {
             if (spriteRenderer != null)
             {
-                spriteRenderer.color = Color.Lerp(spriteRenderer.color, bossTint, 0.55f);
-                spriteRenderer.sortingOrder = Mathf.Max(spriteRenderer.sortingOrder, 6);
+                spriteRenderer.enabled = false;
             }
         }
 
@@ -266,8 +271,8 @@ public class BossController : MonoBehaviour
                 projectileScale = phaseTwoProjectileScale;
                 break;
             case BossPhase.PhaseThree:
-                projectileCount = 20;
-                projectileSpeed = 6.8f;
+                projectileCount = 16;
+                projectileSpeed = 6.1f;
                 damage = 2;
                 projectileColor = new Color(1f, 0.18f, 0.18f, 1f);
                 projectileScale = phaseThreeProjectileScale;
@@ -283,12 +288,12 @@ public class BossController : MonoBehaviour
 
         if (phase == BossPhase.PhaseThree)
         {
-            int secondaryRingCount = 12;
+            int secondaryRingCount = 8;
             float secondaryAngleStep = 360f / secondaryRingCount;
             for (int i = 0; i < secondaryRingCount; i++)
             {
-                float angle = spinOffset + 10f + (secondaryAngleStep * i);
-                SpawnBossProjectile(DirectionFromAngle(angle), projectileSpeed * 0.88f, damage, projectileColor, projectileScale, 4.2f);
+                float angle = spinOffset + 12f + (secondaryAngleStep * i);
+                SpawnBossProjectile(DirectionFromAngle(angle), projectileSpeed * 0.82f, damage, projectileColor, projectileScale, 3.4f);
             }
         }
     }
@@ -301,9 +306,9 @@ public class BossController : MonoBehaviour
         }
 
         Vector2 baseDirection = (player.position - transform.position).normalized;
-        float spread = phase == BossPhase.PhaseThree ? 16f : 11f;
-        int count = phase == BossPhase.PhaseThree ? 7 : 5;
-        float speed = phase == BossPhase.PhaseThree ? 7.2f : 6.2f;
+        float spread = phase == BossPhase.PhaseThree ? 13f : 11f;
+        int count = phase == BossPhase.PhaseThree ? 5 : 5;
+        float speed = phase == BossPhase.PhaseThree ? 6.6f : 6.2f;
         int damage = phase == BossPhase.PhaseThree ? 2 : 1;
         Color color = phase == BossPhase.PhaseThree ? new Color(1f, 0.2f, 0.3f, 1f) : new Color(1f, 0.72f, 0.28f, 1f);
         Vector2 projectileScale = phase == BossPhase.PhaseThree ? phaseThreeProjectileScale : phaseTwoProjectileScale;
@@ -320,15 +325,15 @@ public class BossController : MonoBehaviour
     {
         switch (phase)
         {
-            case BossPhase.PhaseOne: return 3.1f;
-            case BossPhase.PhaseTwo: return 2.45f;
-            default: return 1.85f;
+            case BossPhase.PhaseOne: return 3.6f;
+            case BossPhase.PhaseTwo: return 3.0f;
+            default: return 2.35f;
         }
     }
 
     float GetFanCooldown(BossPhase phase)
     {
-        return phase == BossPhase.PhaseThree ? 1.95f : 2.75f;
+        return phase == BossPhase.PhaseThree ? 2.85f : 3.25f;
     }
 
     void SpawnBossProjectile(Vector2 direction, float speed, int damage, Color color, Vector2 scale, float lifeTime)
@@ -462,5 +467,35 @@ public class BossController : MonoBehaviour
         return new Vector2(
             vector.x * cos - vector.y * sin,
             vector.x * sin + vector.y * cos).normalized;
+    }
+
+    void AttachBossVisual()
+    {
+        if (bossVisualInstance != null)
+        {
+            return;
+        }
+
+        GameObject visualPrefab = Resources.Load<GameObject>(BossVisualResourcePath);
+        if (visualPrefab == null)
+        {
+            Debug.LogWarning("BossController: boss visual prefab not found at Resources/" + BossVisualResourcePath);
+            return;
+        }
+
+        bossVisualInstance = Instantiate(visualPrefab, transform);
+        bossVisualInstance.name = "BossVisual";
+        bossVisualInstance.transform.localPosition = bossVisualOffset;
+        bossVisualInstance.transform.localRotation = Quaternion.identity;
+        bossVisualInstance.transform.localScale = Vector3.one * bossVisualScale;
+
+        SpriteRenderer[] visualRenderers = bossVisualInstance.GetComponentsInChildren<SpriteRenderer>(true);
+        foreach (SpriteRenderer visualRenderer in visualRenderers)
+        {
+            if (visualRenderer != null)
+            {
+                visualRenderer.sortingOrder = Mathf.Max(visualRenderer.sortingOrder, 8);
+            }
+        }
     }
 }
