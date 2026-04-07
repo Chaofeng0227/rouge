@@ -1,7 +1,11 @@
 ﻿using UnityEngine;
 
+[RequireComponent(typeof(AudioSource))]
 public class PlayerShoot : MonoBehaviour
 {
+    private const string NormalShotSfxResourcePath = "Sfx/Laser01";
+    private const string FrostShotSfxResourcePath = "Sfx/Laser02";
+
     public GameObject bulletPrefab;
     public GameObject frostBulletPrefab;
     public Transform firePoint;
@@ -18,8 +22,20 @@ public class PlayerShoot : MonoBehaviour
     public float frostDuration = 1.5f;
     public int frostFreezeThreshold = 3;
     public float frostFreezeDuration = 1.25f;
+    public float shotSfxVolume = 0.55f;
 
     private float fireTimer;
+    private AudioSource audioSource;
+    private static AudioClip cachedNormalShotSfx;
+    private static AudioClip cachedFrostShotSfx;
+
+    void Awake()
+    {
+        audioSource = GetComponent<AudioSource>();
+        audioSource.playOnAwake = false;
+        audioSource.loop = false;
+        audioSource.spatialBlend = 0f;
+    }
 
     void Update()
     {
@@ -44,6 +60,8 @@ public class PlayerShoot : MonoBehaviour
         {
             return;
         }
+
+        PlayShotSfx();
 
         Vector3 spawnPosition = firePoint != null ? firePoint.position : transform.position;
         SpawnBullet(spawnPosition, direction, bulletDamage, bulletSpeed);
@@ -108,5 +126,38 @@ public class PlayerShoot : MonoBehaviour
         float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
         firePoint.rotation = Quaternion.Euler(0f, 0f, angle);
     }
-}
 
+    void PlayShotSfx()
+    {
+        if (audioSource == null)
+        {
+            return;
+        }
+
+        AudioClip clip = GetShotSfxClip();
+        if (clip != null)
+        {
+            audioSource.PlayOneShot(clip, shotSfxVolume);
+        }
+    }
+
+    AudioClip GetShotSfxClip()
+    {
+        if (frostShotEnabled)
+        {
+            if (cachedFrostShotSfx == null)
+            {
+                cachedFrostShotSfx = Resources.Load<AudioClip>(FrostShotSfxResourcePath);
+            }
+
+            return cachedFrostShotSfx;
+        }
+
+        if (cachedNormalShotSfx == null)
+        {
+            cachedNormalShotSfx = Resources.Load<AudioClip>(NormalShotSfxResourcePath);
+        }
+
+        return cachedNormalShotSfx;
+    }
+}

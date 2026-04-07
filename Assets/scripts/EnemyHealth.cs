@@ -2,6 +2,8 @@
 
 public class EnemyHealth : MonoBehaviour
 {
+    private const string DeathSfxResourcePath = "Sfx/BloodyPunch";
+
     [Header("Base Stats")]
     public int maxHealth = 3;
     public int experienceReward = 1;
@@ -10,7 +12,11 @@ public class EnemyHealth : MonoBehaviour
     public int healthIncreasePerLevel = 2;
     public int expIncreasePerLevel = 1;
 
+    [Header("Audio")]
+    [SerializeField] private float deathSfxVolume = 0.65f;
+
     private int currentHealth;
+    private static AudioClip cachedDeathSfx;
 
     public int CurrentHealth => currentHealth;
     public int MaxHealth => maxHealth;
@@ -66,6 +72,7 @@ public class EnemyHealth : MonoBehaviour
             return;
         }
 
+        PlayDeathSfx();
         ExperienceOrb.Spawn(transform.position, experienceReward);
         Destroy(gameObject);
     }
@@ -75,6 +82,19 @@ public class EnemyHealth : MonoBehaviour
         if (GetComponent<OverheadHealthBar>() == null)
         {
             gameObject.AddComponent<OverheadHealthBar>();
+        }
+    }
+
+    void PlayDeathSfx()
+    {
+        if (cachedDeathSfx == null)
+        {
+            cachedDeathSfx = Resources.Load<AudioClip>(DeathSfxResourcePath);
+        }
+
+        if (cachedDeathSfx != null)
+        {
+            AudioSource.PlayClipAtPoint(cachedDeathSfx, transform.position, deathSfxVolume);
         }
     }
 }
