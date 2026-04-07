@@ -18,6 +18,7 @@ public class PlayerHealth : MonoBehaviour
         EnsureSupportComponents();
         FloorMapController.EnsureInstance();
         BackgroundMusicController.EnsureInstance();
+        PauseMenuUI.EnsureInstance();
     }
 
     void Start()
